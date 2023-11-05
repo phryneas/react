@@ -16,8 +16,8 @@ export default function App({assets, title}) {
   if (typeof window === 'undefined') {
     ReactDOM.dangerous_appendScript(`/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
       console.log("hello from server")`);
-    // this currently works in the sense of "keep the stream open until the promise resolves"
-    // but it doesn't *really* work yet - part of the response HTML between these two scripts gets lost
+    // this injection stuff might be causing an hydration error,
+    // but aside from that it's actually working?
     ReactDOM.dangerous_appendScript(
       new Promise(resolve =>
         setTimeout(
