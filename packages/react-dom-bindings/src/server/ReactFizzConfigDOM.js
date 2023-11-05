@@ -5307,14 +5307,17 @@ function dangerous_appendScript(script: string | Promise<string>) {
   if (!enableFloat) {
     return;
   }
-  if (typeof script === 'string') {
-    const request = resolveRequest();
-    if (!request) {
-      // In async contexts we can sometimes resolve resources from AsyncLocalStorage. If we can't we can also
-      // possibly get them from the stack if we are not in an async context. Since we were not able to resolve
-      // the resources for this call in either case we opt to do nothing. We can consider making this a warning
-      // but there may be times where calling a function outside of render is intentional (i.e. to warm up data
-      // fetching) and we don't want to warn in those cases.
+  const request = resolveRequest();
+  if (!request) {
+    // In async contexts we can sometimes resolve resources from AsyncLocalStorage. If we can't we can also
+    // possibly get them from the stack if we are not in an async context. Since we were not able to resolve
+    // the resources for this call in either case we opt to do nothing. We can consider making this a warning
+    // but there may be times where calling a function outside of render is intentional (i.e. to warm up data
+    // fetching) and we don't want to warn in those cases.
+    return;
+  }
+  function flushScript(contents: string) {
+    if (typeof contents !== 'string') {
       return;
     }
     const renderState = getRenderState(request);
@@ -5324,16 +5327,24 @@ function dangerous_appendScript(script: string | Promise<string>) {
     resource.push(startChunkForTag('script'));
     pushAttribute(resource, 'type', 'text/javascript');
     resource.push(endOfStartTag);
-    pushInnerHTML(resource, {__html: script}, null);
+    pushInnerHTML(resource, {__html: contents}, null);
     resource.push(endChunkForTag('script'));
 
     flushResources(request);
-  } else if (script && typeof script.then === 'function') {
-    // TODO learn about tasks, create task to resolve the promise and append the script
-    script.then(result => {
-      // voodoo
-      // ensureRootIsScheduled ?
+  }
+  if (script && typeof script.then === 'function') {
+    request.allPendingTasks++;
+    script.then(flushScript).finally(() => {
+      request.allPendingTasks--;
+      if (request.allPendingTasks === 0) {
+        // This needs to be called at the very end so that we can synchronously write the result
+        // in the callback if needed.
+        const onAllReady = request.onAllReady;
+        onAllReady();
+      }
     });
+  } else {
+    flushScript(script);
   }
 }
 
