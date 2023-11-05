@@ -88,6 +88,7 @@ import ReactDOMSharedInternals from 'shared/ReactDOMSharedInternals';
 const ReactDOMCurrentDispatcher = ReactDOMSharedInternals.Dispatcher;
 
 const ReactDOMServerDispatcher = {
+  dangerous_appendScript,
   prefetchDNS,
   preconnect,
   preload,
@@ -5299,6 +5300,40 @@ function preload(href: string, as: string, options?: ?PreloadImplOptions) {
     }
     // If we got this far we created a new resource
     flushResources(request);
+  }
+}
+
+function dangerous_appendScript(script: string | Promise<string>) {
+  if (!enableFloat) {
+    return;
+  }
+  if (typeof script === 'string') {
+    const request = resolveRequest();
+    if (!request) {
+      // In async contexts we can sometimes resolve resources from AsyncLocalStorage. If we can't we can also
+      // possibly get them from the stack if we are not in an async context. Since we were not able to resolve
+      // the resources for this call in either case we opt to do nothing. We can consider making this a warning
+      // but there may be times where calling a function outside of render is intentional (i.e. to warm up data
+      // fetching) and we don't want to warn in those cases.
+      return;
+    }
+    const renderState = getRenderState(request);
+    const resource: Resource = [];
+    renderState.scripts.add(resource);
+
+    resource.push(startChunkForTag('style'));
+    pushAttribute(resource, 'type', 'text/javascript');
+    resource.push(endOfStartTag);
+    pushInnerHTML(resource, {__html: script}, null);
+    resource.push(endChunkForTag('style'));
+
+    flushResources(request);
+  } else if (script && typeof script.then === 'function') {
+    // TODO learn about tasks, create task to resolve the promise and append the script
+    script.then(result => {
+      // voodoo
+      // ensureRootIsScheduled ?
+    });
   }
 }
 

@@ -28,9 +28,9 @@
     "prettier": "1.19.1"
   },
   "scripts": {
-    "predev": "cp -r ../../build/oss-experimental/* ./node_modules/",
-    "prestart": "cp -r ../../build/oss-experimental/* ./node_modules/",
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:bundler\"",
+    "predev": "#cp -r ../../build/oss-experimental/* ./node_modules/",
+    "prestart": "#cp -r ../../build/oss-experimental/* ./node_modules/",
+    "dev": "NODE_OPTIONS='--openssl-legacy-provider' concurrently \"npm run dev:server\" \"npm run dev:bundler\"",
     "start": "concurrently \"npm run start:server\" \"npm run start:bundler\"",
     "dev:server": "cross-env NODE_ENV=development nodemon -- --inspect server/server.js",
     "start:server": "cross-env NODE_ENV=production nodemon -- server/server.js",

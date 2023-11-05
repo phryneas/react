@@ -8,9 +8,15 @@
 
 import Html from './Html';
 import BigComponent from './BigComponent';
+import ReactDOM from 'react-dom';
 
 export default function App({assets, title}) {
   const components = [];
+
+  if (typeof window === 'undefined') {
+    ReactDOM.dangerous_appendScript(`/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+      console.log("hello from server")`);
+  }
 
   for (let i = 0; i <= 250; i++) {
     components.push(<BigComponent key={i} />);
@@ -19,8 +25,6 @@ export default function App({assets, title}) {
   return (
     <Html assets={assets} title={title}>
       <h1>{title}</h1>
-      {components}
-      <h1>all done</h1>
     </Html>
   );
 }

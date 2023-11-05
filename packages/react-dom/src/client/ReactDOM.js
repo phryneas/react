@@ -56,6 +56,7 @@ import {
 import Internals from '../ReactDOMSharedInternals';
 
 export {
+  dangerous_appendScript,
   prefetchDNS,
   preconnect,
   preload,

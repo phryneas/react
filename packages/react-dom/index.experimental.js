@@ -11,6 +11,7 @@ export {default as __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED} from './s
 export {
   createPortal,
   createRoot,
+  dangerous_appendScript,
   hydrateRoot,
   findDOMNode,
   flushSync,

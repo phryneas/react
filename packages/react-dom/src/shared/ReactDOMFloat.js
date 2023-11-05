@@ -149,6 +149,13 @@ export function preload(href: string, options: PreloadOptions) {
   // so we favor silent bailout over warning or erroring.
 }
 
+export function dangerous_appendScript(script: string | Promise<string>) {
+  const dispatcher = Dispatcher.current;
+  if (dispatcher) {
+    dispatcher.dangerous_appendScript(script);
+  }
+}
+
 export function preloadModule(href: string, options?: ?PreloadModuleOptions) {
   if (__DEV__) {
     let encountered = '';
