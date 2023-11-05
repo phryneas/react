@@ -16,8 +16,7 @@ export default function App({assets, title}) {
   if (typeof window === 'undefined') {
     ReactDOM.dangerous_appendScript(`/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
       console.log("hello from server")`);
-    // this injection stuff might be causing an hydration error,
-    // but aside from that it's actually working?
+    // this seems to actually keep the stream open and then inject the script as a last job
     ReactDOM.dangerous_appendScript(
       new Promise(resolve =>
         setTimeout(
