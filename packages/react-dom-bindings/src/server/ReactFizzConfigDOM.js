@@ -5321,11 +5321,11 @@ function dangerous_appendScript(script: string | Promise<string>) {
     const resource: Resource = [];
     renderState.scripts.add(resource);
 
-    resource.push(startChunkForTag('style'));
+    resource.push(startChunkForTag('script'));
     pushAttribute(resource, 'type', 'text/javascript');
     resource.push(endOfStartTag);
     pushInnerHTML(resource, {__html: script}, null);
-    resource.push(endChunkForTag('style'));
+    resource.push(endChunkForTag('script'));
 
     flushResources(request);
   } else if (script && typeof script.then === 'function') {
