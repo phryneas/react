@@ -37,6 +37,8 @@ export default function App({assets, title}) {
   return (
     <Html assets={assets} title={title}>
       <h1>{title}</h1>
+      {components}
+      <h1>all done</h1>
     </Html>
   );
 }
