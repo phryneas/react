@@ -1650,6 +1650,72 @@ function updateSyncExternalStore<T>(
   return nextSnapshot;
 }
 
+function mountActionChannel<A>(
+  subscriber: A => void,
+): (A | Thenable<A>) => void {
+  const channelId = mountId();
+  const hook = mountWorkInProgressHook();
+  // eslint-disable-next-line no-restricted-globals
+  if (!self) {
+    hook.memoizedState = {channel: [], dispatch: () => undefined};
+  } else {
+    const channelBase =
+      // eslint-disable-next-line no-restricted-globals
+      self.__REACT_ACTION_CHANNEL || (self.__REACT_ACTION_CHANNEL = {});
+
+    const channel = channelBase[channelId] || (channelBase[channelId] = []);
+    const dispatch = v => channel.push(v);
+
+    hook.memoizedState = {channel, dispatch};
+
+    // TODO: probably do this in an effect?
+    channel.push = subscriber;
+    // consume backpressure
+    while (channel.length) {
+      subscriber(channel.shift());
+    }
+
+    // cleanup?
+    // restore original Array.prototype.push method
+    // delete channel.push;
+  }
+
+  return hook.memoizedState.dispatch;
+}
+
+function updateActionChannel<A>(
+  subscriber: A => void,
+): (A | Thenable<A>) => void {
+  updateId(); // for symmetry with the `mountId()` call in `mountActionChannel`
+  const hook = updateWorkInProgressHook();
+  return hook.memoizedValue.dispatch;
+}
+
+const uninitialized = {};
+function mountStaticValue<V>(value: (() => V) | V): V {
+  const channelId = mountId();
+  const hook = mountWorkInProgressHook();
+  hook.memoizedValue = uninitialized;
+
+  // eslint-disable-next-line no-restricted-globals
+  const channelBase = self && self.__REACT_ACTION_CHANNEL;
+  const channel = channelBase && channelBase[channelId];
+  if (channel && channel.length) {
+    hook.memoizedValue = channel.shift();
+  }
+
+  if (hook.memoizedValue === uninitialized) {
+    hook.memoizedValue = typeof value === 'function' ? value() : value;
+  }
+  return hook.memoizedValue;
+}
+
+function updateStaticValue<V>(value: (() => V) | V): V {
+  updateId(); // for symmetry with the `mountId()` call in `mountStaticValue`
+  const hook = updateWorkInProgressHook();
+  return hook.memoizedValue;
+}
+
 function pushStoreConsistencyCheck<T>(
   fiber: Fiber,
   getSnapshot: () => T,
@@ -3461,6 +3527,8 @@ const HooksDispatcherOnMount: Dispatcher = {
   useDeferredValue: mountDeferredValue,
   useTransition: mountTransition,
   useSyncExternalStore: mountSyncExternalStore,
+  useActionChannel: mountActionChannel,
+  useStaticValue: mountStaticValue,
   useId: mountId,
 };
 if (enableCache) {
@@ -3499,6 +3567,8 @@ const HooksDispatcherOnUpdate: Dispatcher = {
   useDeferredValue: updateDeferredValue,
   useTransition: updateTransition,
   useSyncExternalStore: updateSyncExternalStore,
+  useActionChannel: updateActionChannel,
+  useStaticValue: updateStaticValue,
   useId: updateId,
 };
 if (enableCache) {
@@ -3537,6 +3607,8 @@ const HooksDispatcherOnRerender: Dispatcher = {
   useDeferredValue: rerenderDeferredValue,
   useTransition: rerenderTransition,
   useSyncExternalStore: updateSyncExternalStore,
+  useActionChannel: updateActionChannel,
+  useStaticValue: updateStaticValue,
   useId: updateId,
 };
 if (enableCache) {
@@ -3706,6 +3778,16 @@ if (__DEV__) {
       mountHookTypesDev();
       return mountSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
     },
+    useActionChannel<A>(subscriber: A => void): (A | Thenable<A>) => void {
+      currentHookNameInDev = 'useActionChannel';
+      mountHookTypesDev();
+      return mountActionChannel(subscriber);
+    },
+    useStaticValue<V>(value: (() => V) | V): V {
+      currentHookNameInDev = 'useStaticValue';
+      mountHookTypesDev();
+      return mountStaticValue(value);
+    },
     useId(): string {
       currentHookNameInDev = 'useId';
       mountHookTypesDev();
@@ -3874,6 +3956,16 @@ if (__DEV__) {
       currentHookNameInDev = 'useSyncExternalStore';
       updateHookTypesDev();
       return mountSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+    },
+    useActionChannel<A>(subscriber: A => void): (A | Thenable<A>) => void {
+      currentHookNameInDev = 'useActionChannel';
+      mountHookTypesDev();
+      return mountActionChannel(subscriber);
+    },
+    useStaticValue<V>(value: (() => V) | V): V {
+      currentHookNameInDev = 'useStaticValue';
+      mountHookTypesDev();
+      return mountStaticValue(value);
     },
     useId(): string {
       currentHookNameInDev = 'useId';
@@ -4048,6 +4140,16 @@ if (__DEV__) {
       updateHookTypesDev();
       return updateSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
     },
+    useActionChannel<A>(subscriber: A => void): (A | Thenable<A>) => void {
+      currentHookNameInDev = 'useActionChannel';
+      updateHookTypesDev();
+      return updateActionChannel(subscriber);
+    },
+    useStaticValue<V>(value: (() => V) | V): V {
+      currentHookNameInDev = 'useStaticValue';
+      updateHookTypesDev();
+      return updateStaticValue(value);
+    },
     useId(): string {
       currentHookNameInDev = 'useId';
       updateHookTypesDev();
@@ -4219,6 +4321,16 @@ if (__DEV__) {
       currentHookNameInDev = 'useSyncExternalStore';
       updateHookTypesDev();
       return updateSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+    },
+    useActionChannel<A>(subscriber: A => void): (A | Thenable<A>) => void {
+      currentHookNameInDev = 'useActionChannel';
+      updateHookTypesDev();
+      return updateActionChannel(subscriber);
+    },
+    useStaticValue<V>(value: (() => V) | V): V {
+      currentHookNameInDev = 'useStaticValue';
+      updateHookTypesDev();
+      return updateStaticValue(value);
     },
     useId(): string {
       currentHookNameInDev = 'useId';
@@ -4406,6 +4518,16 @@ if (__DEV__) {
       warnInvalidHookAccess();
       mountHookTypesDev();
       return mountSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+    },
+    useActionChannel<A>(subscriber: A => void): (A | Thenable<A>) => void {
+      currentHookNameInDev = 'useActionChannel';
+      mountHookTypesDev();
+      return mountActionChannel(subscriber);
+    },
+    useStaticValue<V>(value: (() => V) | V): V {
+      currentHookNameInDev = 'useStaticValue';
+      mountHookTypesDev();
+      return mountStaticValue(value);
     },
     useId(): string {
       currentHookNameInDev = 'useId';
@@ -4605,6 +4727,16 @@ if (__DEV__) {
       updateHookTypesDev();
       return updateSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
     },
+    useActionChannel<A>(subscriber: A => void): (A | Thenable<A>) => void {
+      currentHookNameInDev = 'useActionChannel';
+      updateHookTypesDev();
+      return updateActionChannel(subscriber);
+    },
+    useStaticValue<V>(value: (() => V) | V): V {
+      currentHookNameInDev = 'useStaticValue';
+      updateHookTypesDev();
+      return updateStaticValue(value);
+    },
     useId(): string {
       currentHookNameInDev = 'useId';
       warnInvalidHookAccess();
@@ -4802,6 +4934,16 @@ if (__DEV__) {
       warnInvalidHookAccess();
       updateHookTypesDev();
       return updateSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+    },
+    useActionChannel<A>(subscriber: A => void): (A | Thenable<A>) => void {
+      currentHookNameInDev = 'useActionChannel';
+      updateHookTypesDev();
+      return updateActionChannel(subscriber);
+    },
+    useStaticValue<V>(value: (() => V) | V): V {
+      currentHookNameInDev = 'useStaticValue';
+      updateHookTypesDev();
+      return updateStaticValue(value);
     },
     useId(): string {
       currentHookNameInDev = 'useId';

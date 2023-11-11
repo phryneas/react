@@ -149,10 +149,13 @@ export function preload(href: string, options: PreloadOptions) {
   // so we favor silent bailout over warning or erroring.
 }
 
-export function dangerous_appendScript(script: string | Promise<string>) {
+export function dispatchToActionChannel(
+  channelId: string,
+  action: mixed | Promise<mixed>,
+) {
   const dispatcher = Dispatcher.current;
   if (dispatcher) {
-    dispatcher.dangerous_appendScript(script);
+    dispatcher.dispatchToActionChannel(channelId, action);
   }
 }
 

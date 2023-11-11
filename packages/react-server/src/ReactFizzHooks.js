@@ -783,6 +783,18 @@ function useMemoCache(size: number): Array<any> {
   return data;
 }
 
+function useActionChannel<A>(subscriber: A => void): (A | Thenable<A>) => void {
+  const id = useId();
+  return (action: A | Thenable<A>) => {
+    globalThis.dispatchToActionChannel(id, action);
+  };
+}
+
+function useStaticValue<V>(value: (() => V) | V): V {
+  const id = useId();
+  globalThis.dispatchToActionChannel(id, value);
+}
+
 function noop(): void {}
 
 export const HooksDispatcher: Dispatcher = {
@@ -807,6 +819,8 @@ export const HooksDispatcher: Dispatcher = {
   useId,
   // Subscriptions are not setup in a server environment.
   useSyncExternalStore,
+  useActionChannel,
+  useStaticValue,
 };
 
 if (enableCache) {

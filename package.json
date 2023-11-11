@@ -111,7 +111,7 @@
     "build-for-devtools": "cross-env RELEASE_CHANNEL=experimental yarn build react/index,react/jsx,react-dom/index,react-dom/unstable_testing,react-dom/test-utils,react-is,react-debug-tools,scheduler,react-test-renderer,react-refresh,react-art --type=NODE && cp -r ./build/node_modules build/oss-experimental/",
     "build-for-devtools-dev": "yarn build-for-devtools --type=NODE_DEV",
     "build-for-devtools-prod": "yarn build-for-devtools --type=NODE_PROD",
-    "build-for-me": "cross-env RELEASE_CHANNEL=experimental yarn node ./scripts/rollup/build.js react-dom/ --type=NODE && cp -r ./build/node_modules/* fixtures/fizz/node_modules/",
+    "build-for-me": "cross-env RELEASE_CHANNEL=experimental yarn node ./scripts/rollup/build.js react/index,react-dom/ --type=NODE && cp -r ./build/node_modules/* fixtures/fizz/node_modules/",
     "linc": "node ./scripts/tasks/linc.js",
     "lint": "node ./scripts/tasks/eslint.js",
     "lint-build": "node ./scripts/rollup/validate/index.js",

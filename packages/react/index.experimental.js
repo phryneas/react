@@ -56,6 +56,8 @@ export {
   useState,
   useSyncExternalStore,
   useTransition,
+  useActionChannel,
+  useStaticValue,
   version,
 } from './src/React';
 

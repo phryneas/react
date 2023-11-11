@@ -60,6 +60,8 @@ import {
   use,
   useMemoCache,
   useOptimistic,
+  useActionChannel,
+  useStaticValue,
 } from './ReactHooks';
 import {
   createElementWithValidation,
@@ -147,4 +149,6 @@ export {
   REACT_TRACING_MARKER_TYPE as unstable_TracingMarker,
   useId,
   act,
+  useActionChannel,
+  useStaticValue,
 };

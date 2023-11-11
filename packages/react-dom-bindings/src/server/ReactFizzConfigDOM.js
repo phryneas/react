@@ -88,7 +88,7 @@ import ReactDOMSharedInternals from 'shared/ReactDOMSharedInternals';
 const ReactDOMCurrentDispatcher = ReactDOMSharedInternals.Dispatcher;
 
 const ReactDOMServerDispatcher = {
-  dangerous_appendScript,
+  dispatchToActionChannel,
   prefetchDNS,
   preconnect,
   preload,
@@ -5303,7 +5303,10 @@ function preload(href: string, as: string, options?: ?PreloadImplOptions) {
   }
 }
 
-function dangerous_appendScript(script: string | Promise<string>) {
+function dispatchToActionChannel(
+  channelId: string,
+  action: mixed | Promise<mixed>,
+) {
   if (!enableFloat) {
     return;
   }
@@ -5316,25 +5319,40 @@ function dangerous_appendScript(script: string | Promise<string>) {
     // fetching) and we don't want to warn in those cases.
     return;
   }
-  function flushScript(contents: string) {
-    if (typeof contents !== 'string') {
-      return;
+  function flushAction(resolvedAction: mixed) {
+    try {
+      const renderState = getRenderState(request);
+      const resource: Resource = [];
+
+      resource.push(startChunkForTag('script'));
+      pushAttribute(resource, 'type', 'text/javascript');
+      resource.push(endOfStartTag);
+      pushInnerHTML(
+        resource,
+        {
+          __html:
+            '{' +
+            `let i=${JSON.stringify(channelId)},` +
+            `c='__REACT_ACTION_CHANNEL',b=self[c]||(self[c]={});` +
+            `(b[i]||(b[i]=[])).push(${JSON.stringify(resolvedAction)})` +
+            `}`,
+        },
+        null,
+      );
+      resource.push(endChunkForTag('script'));
+      renderState.scripts.add(resource);
+    } finally {
+      // make sure that `flushResources` is always called, even if e.g.
+      // the `JSON.stringify` above throws.
+      // we might have gone the async path and prevented the final flush
+      // by incrementing `request.allPendingTasks`, so we definitely have
+      // to flush
+      flushResources(request);
     }
-    const renderState = getRenderState(request);
-    const resource: Resource = [];
-    renderState.scripts.add(resource);
-
-    resource.push(startChunkForTag('script'));
-    pushAttribute(resource, 'type', 'text/javascript');
-    resource.push(endOfStartTag);
-    pushInnerHTML(resource, {__html: contents}, null);
-    resource.push(endChunkForTag('script'));
-
-    flushResources(request);
   }
-  if (script && typeof script.then === 'function') {
+  if (action && typeof action.then === 'function') {
     request.allPendingTasks++;
-    script.then(flushScript).finally(() => {
+    action.then(flushAction).finally(() => {
       request.allPendingTasks--;
       if (request.allPendingTasks === 0) {
         // This needs to be called at the very end so that we can synchronously write the result
@@ -5344,7 +5362,7 @@ function dangerous_appendScript(script: string | Promise<string>) {
       }
     });
   } else {
-    flushScript(script);
+    flushAction(action);
   }
 }
 

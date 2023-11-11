@@ -99,6 +99,8 @@ export const HooksDispatcher: Dispatcher = {
     return data;
   },
   use,
+  useActionChannel: (unsupportedHook: any),
+  useStaticValue: (unsupportedHook: any),
 };
 
 function unsupportedHook(): void {
