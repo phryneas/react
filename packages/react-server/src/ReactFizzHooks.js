@@ -797,6 +797,7 @@ function useActionChannel<A>(subscriber: A => void): (A | Thenable<A>) => void {
 function useStaticValue<V>(value: (() => V) | V): V {
   const id = useId();
   dispatchToActionChannel(id, value);
+  return value;
 }
 
 function noop(): void {}

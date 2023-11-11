@@ -1701,7 +1701,9 @@ function mountStaticValue<V>(value: (() => V) | V): V {
   const channelBase = self && self.__REACT_ACTION_CHANNEL;
   const channel = channelBase && channelBase[channelId];
   if (channel && channel.length) {
-    hook.memoizedValue = channel.shift();
+    // we want the *last* value from the channel, in case the component
+    // re-rendered multiple times on the server
+    hook.memoizedValue = channel.pop();
   }
 
   if (hook.memoizedValue === uninitialized) {
