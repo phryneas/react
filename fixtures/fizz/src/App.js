@@ -14,8 +14,9 @@ import React from 'react';
 export default function App({assets, title}) {
   const components = [];
 
-  const dispatch = React.useActionChannel(console.log);
+  const dispatch = React.useActionChannel(action => console.log(action));
   if (typeof window === 'undefined') {
+    // triggers on the server, logs in the browser
     dispatch('hello from server');
     dispatch(
       new Promise(resolve =>
@@ -29,6 +30,7 @@ export default function App({assets, title}) {
   }
 
   console.log(
+    // will transport the value from the server to the browser and log it there
     React.useStaticValue(
       `static value that was first seen ${
         typeof window === 'undefined' ? 'on the server' : 'in the browser'
