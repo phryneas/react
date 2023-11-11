@@ -31,11 +31,6 @@ export {
   version,
 } from './src/client/ReactDOM';
 
-// I have no idea how to make this available to the hook implementations otherwise,
-// so for now this is very hacky
-import {dispatchToActionChannel} from './src/client/ReactDOM';
-globalThis.dispatchToActionChannel = dispatchToActionChannel;
-
 import type {Awaited} from 'shared/ReactTypes';
 import type {FormStatus} from 'react-dom-bindings/src/shared/ReactDOMFormActions';
 import {useFormStatus, useFormState} from './src/client/ReactDOM';

@@ -248,3 +248,7 @@ export function writeEndClientRenderedSuspenseBoundary(
 
 export type TransitionStatus = FormStatus;
 export const NotPendingTransition: TransitionStatus = NotPending;
+
+export function dispatchToActionChannel() {
+  /** this file has "Legacy" in the name so I probably won't need to implement this here? */
+}

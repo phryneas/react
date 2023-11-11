@@ -5303,7 +5303,7 @@ function preload(href: string, as: string, options?: ?PreloadImplOptions) {
   }
 }
 
-function dispatchToActionChannel(
+export function dispatchToActionChannel(
   channelId: string,
   action: mixed | Promise<mixed>,
 ) {

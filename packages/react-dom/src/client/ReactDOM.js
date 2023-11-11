@@ -56,7 +56,6 @@ import {
 import Internals from '../ReactDOMSharedInternals';
 
 export {
-  dispatchToActionChannel,
   prefetchDNS,
   preconnect,
   preload,

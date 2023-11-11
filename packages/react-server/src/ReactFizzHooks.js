@@ -27,7 +27,11 @@ import {readContext as readContextImpl} from './ReactFizzNewContext';
 import {getTreeId} from './ReactFizzTreeContext';
 import {createThenableState, trackUsedThenable} from './ReactFizzThenable';
 
-import {makeId, NotPendingTransition} from './ReactFizzConfig';
+import {
+  makeId,
+  NotPendingTransition,
+  dispatchToActionChannel,
+} from './ReactFizzConfig';
 import {createFastHash} from './ReactServerStreamConfig';
 
 import {
@@ -786,13 +790,13 @@ function useMemoCache(size: number): Array<any> {
 function useActionChannel<A>(subscriber: A => void): (A | Thenable<A>) => void {
   const id = useId();
   return (action: A | Thenable<A>) => {
-    globalThis.dispatchToActionChannel(id, action);
+    dispatchToActionChannel(id, action);
   };
 }
 
 function useStaticValue<V>(value: (() => V) | V): V {
   const id = useId();
-  globalThis.dispatchToActionChannel(id, value);
+  dispatchToActionChannel(id, value);
 }
 
 function noop(): void {}
