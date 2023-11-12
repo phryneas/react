@@ -10,23 +10,24 @@ import Html from './Html';
 import BigComponent from './BigComponent';
 import ReactDOM from 'react-dom';
 import React from 'react';
+import {ReduxDemo} from './ReduxDemo';
 
 export default function App({assets, title}) {
   const components = [];
 
-  const dispatch = React.useActionChannel(action => console.log(action));
+  const dispatch = React.useActionChannel(console.log);
   if (typeof window === 'undefined') {
     // triggers on the server, logs in the browser
     dispatch('hello from server');
-    dispatch(
-      new Promise(resolve =>
-        setTimeout(
-          resolve,
-          1000,
-          'late goodbye from server, kept the stream open until this finished!'
-        )
-      )
-    );
+    // dispatch(
+    //   new Promise(resolve =>
+    //     setTimeout(
+    //       resolve,
+    //       1000,
+    //       'late goodbye from server, kept the stream open until this finished!'
+    //     )
+    //   )
+    // );
   }
 
   console.log(
@@ -45,7 +46,7 @@ export default function App({assets, title}) {
   return (
     <Html assets={assets} title={title}>
       <h1>{title}</h1>
-      {components}
+      <ReduxDemo />
       <h1>all done</h1>
     </Html>
   );
