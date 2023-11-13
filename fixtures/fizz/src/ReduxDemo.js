@@ -24,8 +24,6 @@ function streamingEnhancer(next) {
   return function(...args) {
     const store = next(...args);
 
-    const source = {};
-
     let onDispatch = undefined;
     return Object.assign({}, store, {
       directDispatch(action) {
@@ -40,7 +38,7 @@ function streamingEnhancer(next) {
           typeof action === 'object' &&
           typeof action.type === 'string'
         ) {
-          console.log('transporting action', action);
+          console.log('[Redux Toolkit] transporting action', action.type);
           onDispatch(action);
         }
         return store.dispatch(action);
@@ -97,6 +95,9 @@ function DataFetchingComponent() {
   const pokemon = useSelector(
     pokemonApi.endpoints.getPokemonByName.select('bulbasaur')
   );
-  console.log('rendering', pokemon.data.name);
+  console.log('[Redux Toolkit] rendering pokemon', {
+    id: pokemon.data.id,
+    name: pokemon.data.name,
+  });
   return <div>Pokemon: {pokemon.data.name}</div>;
 }
