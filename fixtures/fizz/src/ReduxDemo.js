@@ -75,7 +75,7 @@ function StreamingProvider({children}) {
 export function ReduxDemo() {
   return (
     <div>
-      ReduxDemo
+      <h2>ReduxDemo</h2>
       <StreamingProvider>
         <React.Suspense>
           <DataFetchingComponent />

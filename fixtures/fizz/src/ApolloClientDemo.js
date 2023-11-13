@@ -214,11 +214,15 @@ function StreamingProvider({children}) {
   return React.createElement(ApolloProvider, {client}, children);
 }
 
+/**
+ * We excluded this file from transpilation so we can use modern features without confusing this old version of Webpack.
+ * This means we can't use JSX here, so we have to use `React.createElement` instead.
+ */
 function ApolloClientDemo() {
   return React.createElement(
     'div',
     null,
-    'Apollo Client Demo',
+    React.createElement('h2', null, 'ApolloClientDemo'),
     React.createElement(
       StreamingProvider,
       null,
