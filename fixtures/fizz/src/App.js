@@ -11,6 +11,7 @@ import BigComponent from './BigComponent';
 import ReactDOM from 'react-dom';
 import React from 'react';
 import {ReduxDemo} from './ReduxDemo';
+const {ApolloClientDemo} = require('./ApolloClientDemo.js');
 
 export default function App({assets, title}) {
   const components = [];
@@ -47,6 +48,7 @@ export default function App({assets, title}) {
     <Html assets={assets} title={title}>
       <h1>{title}</h1>
       <ReduxDemo />
+      <ApolloClientDemo />
       <h1>all done</h1>
     </Html>
   );
