@@ -5332,9 +5332,11 @@ export function dispatchToActionChannel(
         {
           __html:
             '{' +
-            `let i=${JSON.stringify(channelId)},` +
+            `let i=${escapeJSObjectForInstructionScripts(channelId)},` +
             `c='__REACT_ACTION_CHANNEL',b=self[c]||(self[c]={});` +
-            `(b[i]||(b[i]=[])).push(${JSON.stringify(resolvedAction)})` +
+            `(b[i]||(b[i]=[])).push(${escapeJSObjectForInstructionScripts(
+              resolvedAction,
+            )})` +
             `}`,
         },
         null,
