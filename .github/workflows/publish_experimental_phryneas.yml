@@ -27,7 +27,7 @@ jobs:
       - name: "@phryneas/experimental-react: Update package names and versions"
         working-directory: build/node_modules/react
         run: |
-          npm pkg set "name=@phryneas/experimental-react" "version=${{ env.PKG_VERSION }}" "repository.url="git+https://github.com/phryneas/react.git"
+          npm pkg set "name=@phryneas/experimental-react" "version=${{ env.PKG_VERSION }}" "repository.url=git+https://github.com/phryneas/react.git"
           jq '{ name: .name, version: .version, dependencies: .dependencies, peerDependencies: .peerDependencies, repository: .repository }' package.json
           sed -i 's|18.3.0-PLACEHOLDER|${{ env.PKG_VERSION }}|' */*.js
 
@@ -40,7 +40,7 @@ jobs:
       - name: "@phryneas/experimental-react-dom: Update package names and versions"
         working-directory: build/node_modules/react-dom
         run: |
-          npm pkg set "name=@phryneas/experimental-react-dom" "version=${{ env.PKG_VERSION }}" "peerDependencies[react]=npm:@phryneas/experimental-react${{ env.PKG_VERSION }}" "repository.url="git+https://github.com/phryneas/react.git"
+          npm pkg set "name=@phryneas/experimental-react-dom" "version=${{ env.PKG_VERSION }}" "peerDependencies[react]=npm:@phryneas/experimental-react${{ env.PKG_VERSION }}" "repository.url=git+https://github.com/phryneas/react.git"
           jq '{ name: .name, version: .version, dependencies: .dependencies, peerDependencies: .peerDependencies, repository: .repository }' package.json
           sed -i 's|18.3.0-PLACEHOLDER|${{ env.PKG_VERSION }}|' */*.js
 
