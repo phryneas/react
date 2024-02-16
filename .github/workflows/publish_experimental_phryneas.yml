@@ -10,6 +10,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with: 
+          ref: stream-injection
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
