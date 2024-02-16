@@ -31,7 +31,7 @@ jobs:
 
       - name: "@phryneas/experimental-react: publish"
         working-directory: build/node_modules/react
-        run: npm publish --access public --tag experimental --provenance --dry-run
+        run: npm publish --access public --tag experimental --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -44,6 +44,6 @@ jobs:
 
       - name: "@phryneas/experimental-react-dom: publish"
         working-directory: build/node_modules/react-dom
-        run: npm publish --access public --tag experimental --provenance --dry-run
+        run: npm publish --access public --tag experimental --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
