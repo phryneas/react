@@ -1,0 +1,49 @@
+name: Publish experimental Package to npmjs @phryneas scope
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+          cache: "yarn"
+      - run: yarn install --immutable --mode=skip-build
+
+      - run: echo PKG_VERSION="0.0.0-phryneas-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: "Build"
+        run: yarn cross-env RELEASE_CHANNEL=experimental yarn node ./scripts/rollup/build.js react/,react-dom/
+
+      - name: "@phryneas/experimental-react: Update package names and versions"
+        working-directory: build/node_modules/react
+        run: |
+          npm pkg set "name=@phryneas/experimental-react" "version=${{ env.PKG_VERSION }}"
+          jq '{ name: .name, version: .version, dependencies: .dependencies, peerDependencies: .peerDependencies }' package.json
+          sed -i 's|18.3.0-PLACEHOLDER|${{ env.PKG_VERSION }}|' */*.js
+
+      - name: "@phryneas/experimental-react: publish"
+        working-directory: build/node_modules/react
+        run: npm publish --access public --tag experimental --provenance --dry-run
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: "@phryneas/experimental-react-dom: Update package names and versions"
+        working-directory: build/node_modules/react-dom
+        run: |
+          npm pkg set "name=@phryneas/experimental-react-dom" "version=${{ env.PKG_VERSION }}" "peerDependencies[react]=npm:@phryneas/experimental-react${{ env.PKG_VERSION }}"
+          jq '{ name: .name, version: .version, dependencies: .dependencies, peerDependencies: .peerDependencies }' package.json
+          sed -i 's|18.3.0-PLACEHOLDER|${{ env.PKG_VERSION }}|' */*.js
+
+      - name: "@phryneas/experimental-react-dom: publish"
+        working-directory: build/node_modules/react-dom
+        run: npm publish --access public --tag experimental --provenance --dry-run
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
