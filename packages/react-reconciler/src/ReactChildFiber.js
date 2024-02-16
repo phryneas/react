@@ -8,7 +8,12 @@
  */
 
 import type {ReactElement} from 'shared/ReactElementType';
-import type {ReactPortal, Thenable, ReactContext} from 'shared/ReactTypes';
+import type {
+  ReactPortal,
+  Thenable,
+  ReactContext,
+  ReactDebugInfo,
+} from 'shared/ReactTypes';
 import type {Fiber} from './ReactInternalTypes';
 import type {Lanes} from './ReactFiberLane';
 import type {ThenableState} from './ReactFiberThenable';
@@ -27,7 +32,6 @@ import {
   REACT_PORTAL_TYPE,
   REACT_LAZY_TYPE,
   REACT_CONTEXT_TYPE,
-  REACT_SERVER_CONTEXT_TYPE,
 } from 'shared/ReactSymbols';
 import {ClassComponent, HostText, HostPortal, Fragment} from './ReactWorkTags';
 import isArray from 'shared/isArray';
@@ -50,6 +54,25 @@ import {readContextDuringReconcilation} from './ReactFiberNewContext';
 // This tracks the thenables that are unwrapped during reconcilation.
 let thenableState: ThenableState | null = null;
 let thenableIndexCounter: number = 0;
+
+function mergeDebugInfo(
+  outer: ReactDebugInfo | null,
+  inner: ReactDebugInfo | null | void,
+): ReactDebugInfo | null {
+  if (!__DEV__) {
+    return null;
+  }
+  if (inner == null) {
+    return outer;
+  } else if (outer === null) {
+    return inner;
+  } else {
+    // If we have two debugInfo, we need to create a new one. This makes the array no longer
+    // live so we'll miss any future updates if we received more so ideally we should always
+    // do this after both have fully resolved/unsuspended.
+    return outer.concat(inner);
+  }
+}
 
 let didWarnAboutMaps;
 let didWarnAboutGenerators;
@@ -130,14 +153,6 @@ function coerceRef(
   ) {
     if (__DEV__) {
       if (
-        // We warn in ReactElement.js if owner and self are equal for string refs
-        // because these cannot be automatically converted to an arrow function
-        // using a codemod. Therefore, we don't have to warn about string refs again.
-        !(
-          element._owner &&
-          element._self &&
-          element._owner.stateNode !== element._self
-        ) &&
         // Will already throw with "Function components cannot have string refs"
         !(
           element._owner &&
@@ -396,16 +411,23 @@ function createChildReconciler(
     current: Fiber | null,
     textContent: string,
     lanes: Lanes,
+    debugInfo: ReactDebugInfo | null,
   ) {
     if (current === null || current.tag !== HostText) {
       // Insert
       const created = createFiberFromText(textContent, returnFiber.mode, lanes);
       created.return = returnFiber;
+      if (__DEV__) {
+        created._debugInfo = debugInfo;
+      }
       return created;
     } else {
       // Update
       const existing = useFiber(current, textContent);
       existing.return = returnFiber;
+      if (__DEV__) {
+        existing._debugInfo = debugInfo;
+      }
       return existing;
     }
   }
@@ -415,6 +437,7 @@ function createChildReconciler(
     current: Fiber | null,
     element: ReactElement,
     lanes: Lanes,
+    debugInfo: ReactDebugInfo | null,
   ): Fiber {
     const elementType = element.type;
     if (elementType === REACT_FRAGMENT_TYPE) {
@@ -424,6 +447,7 @@ function createChildReconciler(
         element.props.children,
         lanes,
         element.key,
+        debugInfo,
       );
     }
     if (current !== null) {
@@ -447,8 +471,8 @@ function createChildReconciler(
         existing.ref = coerceRef(returnFiber, current, element);
         existing.return = returnFiber;
         if (__DEV__) {
-          existing._debugSource = element._source;
           existing._debugOwner = element._owner;
+          existing._debugInfo = debugInfo;
         }
         return existing;
       }
@@ -457,6 +481,9 @@ function createChildReconciler(
     const created = createFiberFromElement(element, returnFiber.mode, lanes);
     created.ref = coerceRef(returnFiber, current, element);
     created.return = returnFiber;
+    if (__DEV__) {
+      created._debugInfo = debugInfo;
+    }
     return created;
   }
 
@@ -465,6 +492,7 @@ function createChildReconciler(
     current: Fiber | null,
     portal: ReactPortal,
     lanes: Lanes,
+    debugInfo: ReactDebugInfo | null,
   ): Fiber {
     if (
       current === null ||
@@ -475,11 +503,17 @@ function createChildReconciler(
       // Insert
       const created = createFiberFromPortal(portal, returnFiber.mode, lanes);
       created.return = returnFiber;
+      if (__DEV__) {
+        created._debugInfo = debugInfo;
+      }
       return created;
     } else {
       // Update
       const existing = useFiber(current, portal.children || []);
       existing.return = returnFiber;
+      if (__DEV__) {
+        existing._debugInfo = debugInfo;
+      }
       return existing;
     }
   }
@@ -490,6 +524,7 @@ function createChildReconciler(
     fragment: Iterable<React$Node>,
     lanes: Lanes,
     key: null | string,
+    debugInfo: null | ReactDebugInfo,
   ): Fiber {
     if (current === null || current.tag !== Fragment) {
       // Insert
@@ -500,11 +535,17 @@ function createChildReconciler(
         key,
       );
       created.return = returnFiber;
+      if (__DEV__) {
+        created._debugInfo = debugInfo;
+      }
       return created;
     } else {
       // Update
       const existing = useFiber(current, fragment);
       existing.return = returnFiber;
+      if (__DEV__) {
+        existing._debugInfo = debugInfo;
+      }
       return existing;
     }
   }
@@ -513,6 +554,7 @@ function createChildReconciler(
     returnFiber: Fiber,
     newChild: any,
     lanes: Lanes,
+    debugInfo: ReactDebugInfo | null,
   ): Fiber | null {
     if (
       (typeof newChild === 'string' && newChild !== '') ||
@@ -527,6 +569,9 @@ function createChildReconciler(
         lanes,
       );
       created.return = returnFiber;
+      if (__DEV__) {
+        created._debugInfo = debugInfo;
+      }
       return created;
     }
 
@@ -540,6 +585,9 @@ function createChildReconciler(
           );
           created.ref = coerceRef(returnFiber, null, newChild);
           created.return = returnFiber;
+          if (__DEV__) {
+            created._debugInfo = mergeDebugInfo(debugInfo, newChild._debugInfo);
+          }
           return created;
         }
         case REACT_PORTAL_TYPE: {
@@ -549,12 +597,20 @@ function createChildReconciler(
             lanes,
           );
           created.return = returnFiber;
+          if (__DEV__) {
+            created._debugInfo = debugInfo;
+          }
           return created;
         }
         case REACT_LAZY_TYPE: {
           const payload = newChild._payload;
           const init = newChild._init;
-          return createChild(returnFiber, init(payload), lanes);
+          return createChild(
+            returnFiber,
+            init(payload),
+            lanes,
+            mergeDebugInfo(debugInfo, newChild._debugInfo), // call merge after init
+          );
         }
       }
 
@@ -566,6 +622,9 @@ function createChildReconciler(
           null,
         );
         created.return = returnFiber;
+        if (__DEV__) {
+          created._debugInfo = mergeDebugInfo(debugInfo, newChild._debugInfo);
+        }
         return created;
       }
 
@@ -574,18 +633,21 @@ function createChildReconciler(
       // Unwrap the inner value and recursively call this function again.
       if (typeof newChild.then === 'function') {
         const thenable: Thenable<any> = (newChild: any);
-        return createChild(returnFiber, unwrapThenable(thenable), lanes);
+        return createChild(
+          returnFiber,
+          unwrapThenable(thenable),
+          lanes,
+          mergeDebugInfo(debugInfo, newChild._debugInfo),
+        );
       }
 
-      if (
-        newChild.$$typeof === REACT_CONTEXT_TYPE ||
-        newChild.$$typeof === REACT_SERVER_CONTEXT_TYPE
-      ) {
+      if (newChild.$$typeof === REACT_CONTEXT_TYPE) {
         const context: ReactContext<mixed> = (newChild: any);
         return createChild(
           returnFiber,
           readContextDuringReconcilation(returnFiber, context, lanes),
           lanes,
+          debugInfo,
         );
       }
 
@@ -606,6 +668,7 @@ function createChildReconciler(
     oldFiber: Fiber | null,
     newChild: any,
     lanes: Lanes,
+    debugInfo: null | ReactDebugInfo,
   ): Fiber | null {
     // Update the fiber if the keys match, otherwise return null.
     const key = oldFiber !== null ? oldFiber.key : null;
@@ -620,21 +683,39 @@ function createChildReconciler(
       if (key !== null) {
         return null;
       }
-      return updateTextNode(returnFiber, oldFiber, '' + newChild, lanes);
+      return updateTextNode(
+        returnFiber,
+        oldFiber,
+        '' + newChild,
+        lanes,
+        debugInfo,
+      );
     }
 
     if (typeof newChild === 'object' && newChild !== null) {
       switch (newChild.$$typeof) {
         case REACT_ELEMENT_TYPE: {
           if (newChild.key === key) {
-            return updateElement(returnFiber, oldFiber, newChild, lanes);
+            return updateElement(
+              returnFiber,
+              oldFiber,
+              newChild,
+              lanes,
+              mergeDebugInfo(debugInfo, newChild._debugInfo),
+            );
           } else {
             return null;
           }
         }
         case REACT_PORTAL_TYPE: {
           if (newChild.key === key) {
-            return updatePortal(returnFiber, oldFiber, newChild, lanes);
+            return updatePortal(
+              returnFiber,
+              oldFiber,
+              newChild,
+              lanes,
+              debugInfo,
+            );
           } else {
             return null;
           }
@@ -642,7 +723,13 @@ function createChildReconciler(
         case REACT_LAZY_TYPE: {
           const payload = newChild._payload;
           const init = newChild._init;
-          return updateSlot(returnFiber, oldFiber, init(payload), lanes);
+          return updateSlot(
+            returnFiber,
+            oldFiber,
+            init(payload),
+            lanes,
+            mergeDebugInfo(debugInfo, newChild._debugInfo),
+          );
         }
       }
 
@@ -651,7 +738,14 @@ function createChildReconciler(
           return null;
         }
 
-        return updateFragment(returnFiber, oldFiber, newChild, lanes, null);
+        return updateFragment(
+          returnFiber,
+          oldFiber,
+          newChild,
+          lanes,
+          null,
+          mergeDebugInfo(debugInfo, newChild._debugInfo),
+        );
       }
 
       // Usable node types
@@ -664,19 +758,18 @@ function createChildReconciler(
           oldFiber,
           unwrapThenable(thenable),
           lanes,
+          debugInfo,
         );
       }
 
-      if (
-        newChild.$$typeof === REACT_CONTEXT_TYPE ||
-        newChild.$$typeof === REACT_SERVER_CONTEXT_TYPE
-      ) {
+      if (newChild.$$typeof === REACT_CONTEXT_TYPE) {
         const context: ReactContext<mixed> = (newChild: any);
         return updateSlot(
           returnFiber,
           oldFiber,
           readContextDuringReconcilation(returnFiber, context, lanes),
           lanes,
+          debugInfo,
         );
       }
 
@@ -698,6 +791,7 @@ function createChildReconciler(
     newIdx: number,
     newChild: any,
     lanes: Lanes,
+    debugInfo: ReactDebugInfo | null,
   ): Fiber | null {
     if (
       (typeof newChild === 'string' && newChild !== '') ||
@@ -706,7 +800,13 @@ function createChildReconciler(
       // Text nodes don't have keys, so we neither have to check the old nor
       // new node for the key. If both are text nodes, they match.
       const matchedFiber = existingChildren.get(newIdx) || null;
-      return updateTextNode(returnFiber, matchedFiber, '' + newChild, lanes);
+      return updateTextNode(
+        returnFiber,
+        matchedFiber,
+        '' + newChild,
+        lanes,
+        debugInfo,
+      );
     }
 
     if (typeof newChild === 'object' && newChild !== null) {
@@ -716,14 +816,26 @@ function createChildReconciler(
             existingChildren.get(
               newChild.key === null ? newIdx : newChild.key,
             ) || null;
-          return updateElement(returnFiber, matchedFiber, newChild, lanes);
+          return updateElement(
+            returnFiber,
+            matchedFiber,
+            newChild,
+            lanes,
+            mergeDebugInfo(debugInfo, newChild._debugInfo),
+          );
         }
         case REACT_PORTAL_TYPE: {
           const matchedFiber =
             existingChildren.get(
               newChild.key === null ? newIdx : newChild.key,
             ) || null;
-          return updatePortal(returnFiber, matchedFiber, newChild, lanes);
+          return updatePortal(
+            returnFiber,
+            matchedFiber,
+            newChild,
+            lanes,
+            debugInfo,
+          );
         }
         case REACT_LAZY_TYPE:
           const payload = newChild._payload;
@@ -734,12 +846,20 @@ function createChildReconciler(
             newIdx,
             init(payload),
             lanes,
+            mergeDebugInfo(debugInfo, newChild._debugInfo),
           );
       }
 
       if (isArray(newChild) || getIteratorFn(newChild)) {
         const matchedFiber = existingChildren.get(newIdx) || null;
-        return updateFragment(returnFiber, matchedFiber, newChild, lanes, null);
+        return updateFragment(
+          returnFiber,
+          matchedFiber,
+          newChild,
+          lanes,
+          null,
+          mergeDebugInfo(debugInfo, newChild._debugInfo),
+        );
       }
 
       // Usable node types
@@ -753,13 +873,11 @@ function createChildReconciler(
           newIdx,
           unwrapThenable(thenable),
           lanes,
+          debugInfo,
         );
       }
 
-      if (
-        newChild.$$typeof === REACT_CONTEXT_TYPE ||
-        newChild.$$typeof === REACT_SERVER_CONTEXT_TYPE
-      ) {
+      if (newChild.$$typeof === REACT_CONTEXT_TYPE) {
         const context: ReactContext<mixed> = (newChild: any);
         return updateFromMap(
           existingChildren,
@@ -767,6 +885,7 @@ function createChildReconciler(
           newIdx,
           readContextDuringReconcilation(returnFiber, context, lanes),
           lanes,
+          debugInfo,
         );
       }
 
@@ -837,6 +956,7 @@ function createChildReconciler(
     currentFirstChild: Fiber | null,
     newChildren: Array<any>,
     lanes: Lanes,
+    debugInfo: ReactDebugInfo | null,
   ): Fiber | null {
     // This algorithm can't optimize by searching from both ends since we
     // don't have backpointers on fibers. I'm trying to see how far we can get
@@ -885,6 +1005,7 @@ function createChildReconciler(
         oldFiber,
         newChildren[newIdx],
         lanes,
+        debugInfo,
       );
       if (newFiber === null) {
         // TODO: This breaks on empty slots like null children. That's
@@ -932,7 +1053,12 @@ function createChildReconciler(
       // If we don't have any more existing children we can choose a fast path
       // since the rest will all be insertions.
       for (; newIdx < newChildren.length; newIdx++) {
-        const newFiber = createChild(returnFiber, newChildren[newIdx], lanes);
+        const newFiber = createChild(
+          returnFiber,
+          newChildren[newIdx],
+          lanes,
+          debugInfo,
+        );
         if (newFiber === null) {
           continue;
         }
@@ -963,6 +1089,7 @@ function createChildReconciler(
         newIdx,
         newChildren[newIdx],
         lanes,
+        debugInfo,
       );
       if (newFiber !== null) {
         if (shouldTrackSideEffects) {
@@ -1004,6 +1131,7 @@ function createChildReconciler(
     currentFirstChild: Fiber | null,
     newChildrenIterable: Iterable<mixed>,
     lanes: Lanes,
+    debugInfo: ReactDebugInfo | null,
   ): Fiber | null {
     // This is the same implementation as reconcileChildrenArray(),
     // but using the iterator instead.
@@ -1087,7 +1215,13 @@ function createChildReconciler(
       } else {
         nextOldFiber = oldFiber.sibling;
       }
-      const newFiber = updateSlot(returnFiber, oldFiber, step.value, lanes);
+      const newFiber = updateSlot(
+        returnFiber,
+        oldFiber,
+        step.value,
+        lanes,
+        debugInfo,
+      );
       if (newFiber === null) {
         // TODO: This breaks on empty slots like null children. That's
         // unfortunate because it triggers the slow path all the time. We need
@@ -1134,7 +1268,7 @@ function createChildReconciler(
       // If we don't have any more existing children we can choose a fast path
       // since the rest will all be insertions.
       for (; !step.done; newIdx++, step = newChildren.next()) {
-        const newFiber = createChild(returnFiber, step.value, lanes);
+        const newFiber = createChild(returnFiber, step.value, lanes, debugInfo);
         if (newFiber === null) {
           continue;
         }
@@ -1165,6 +1299,7 @@ function createChildReconciler(
         newIdx,
         step.value,
         lanes,
+        debugInfo,
       );
       if (newFiber !== null) {
         if (shouldTrackSideEffects) {
@@ -1230,6 +1365,7 @@ function createChildReconciler(
     currentFirstChild: Fiber | null,
     element: ReactElement,
     lanes: Lanes,
+    debugInfo: ReactDebugInfo | null,
   ): Fiber {
     const key = element.key;
     let child = currentFirstChild;
@@ -1244,8 +1380,8 @@ function createChildReconciler(
             const existing = useFiber(child, element.props.children);
             existing.return = returnFiber;
             if (__DEV__) {
-              existing._debugSource = element._source;
               existing._debugOwner = element._owner;
+              existing._debugInfo = debugInfo;
             }
             return existing;
           }
@@ -1270,8 +1406,8 @@ function createChildReconciler(
             existing.ref = coerceRef(returnFiber, child, element);
             existing.return = returnFiber;
             if (__DEV__) {
-              existing._debugSource = element._source;
               existing._debugOwner = element._owner;
+              existing._debugInfo = debugInfo;
             }
             return existing;
           }
@@ -1293,11 +1429,17 @@ function createChildReconciler(
         element.key,
       );
       created.return = returnFiber;
+      if (__DEV__) {
+        created._debugInfo = debugInfo;
+      }
       return created;
     } else {
       const created = createFiberFromElement(element, returnFiber.mode, lanes);
       created.ref = coerceRef(returnFiber, currentFirstChild, element);
       created.return = returnFiber;
+      if (__DEV__) {
+        created._debugInfo = debugInfo;
+      }
       return created;
     }
   }
@@ -1307,6 +1449,7 @@ function createChildReconciler(
     currentFirstChild: Fiber | null,
     portal: ReactPortal,
     lanes: Lanes,
+    debugInfo: ReactDebugInfo | null,
   ): Fiber {
     const key = portal.key;
     let child = currentFirstChild;
@@ -1346,6 +1489,7 @@ function createChildReconciler(
     currentFirstChild: Fiber | null,
     newChild: any,
     lanes: Lanes,
+    debugInfo: ReactDebugInfo | null,
   ): Fiber | null {
     // This function is not recursive.
     // If the top level item is an array, we treat it as a set of children,
@@ -1375,6 +1519,7 @@ function createChildReconciler(
               currentFirstChild,
               newChild,
               lanes,
+              mergeDebugInfo(debugInfo, newChild._debugInfo),
             ),
           );
         case REACT_PORTAL_TYPE:
@@ -1384,17 +1529,18 @@ function createChildReconciler(
               currentFirstChild,
               newChild,
               lanes,
+              debugInfo,
             ),
           );
         case REACT_LAZY_TYPE:
           const payload = newChild._payload;
           const init = newChild._init;
-          // TODO: This function is supposed to be non-recursive.
-          return reconcileChildFibers(
+          return reconcileChildFibersImpl(
             returnFiber,
             currentFirstChild,
             init(payload),
             lanes,
+            mergeDebugInfo(debugInfo, newChild._debugInfo),
           );
       }
 
@@ -1404,6 +1550,7 @@ function createChildReconciler(
           currentFirstChild,
           newChild,
           lanes,
+          mergeDebugInfo(debugInfo, newChild._debugInfo),
         );
       }
 
@@ -1413,6 +1560,7 @@ function createChildReconciler(
           currentFirstChild,
           newChild,
           lanes,
+          mergeDebugInfo(debugInfo, newChild._debugInfo),
         );
       }
 
@@ -1439,19 +1587,18 @@ function createChildReconciler(
           currentFirstChild,
           unwrapThenable(thenable),
           lanes,
+          mergeDebugInfo(debugInfo, thenable._debugInfo),
         );
       }
 
-      if (
-        newChild.$$typeof === REACT_CONTEXT_TYPE ||
-        newChild.$$typeof === REACT_SERVER_CONTEXT_TYPE
-      ) {
+      if (newChild.$$typeof === REACT_CONTEXT_TYPE) {
         const context: ReactContext<mixed> = (newChild: any);
         return reconcileChildFibersImpl(
           returnFiber,
           currentFirstChild,
           readContextDuringReconcilation(returnFiber, context, lanes),
           lanes,
+          debugInfo,
         );
       }
 
@@ -1496,6 +1643,7 @@ function createChildReconciler(
       currentFirstChild,
       newChild,
       lanes,
+      null, // debugInfo
     );
     thenableState = null;
     // Don't bother to reset `thenableIndexCounter` to 0 because it always gets

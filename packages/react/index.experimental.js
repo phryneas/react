@@ -9,7 +9,7 @@
 
 export {
   __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED,
-  act as unstable_act,
+  act,
   Children,
   Component,
   Fragment,
@@ -22,7 +22,6 @@ export {
   createElement,
   createFactory,
   createRef,
-  createServerContext,
   use,
   forwardRef,
   isValidElement,
@@ -32,7 +31,7 @@ export {
   startTransition,
   unstable_Cache,
   unstable_DebugTracingMode,
-  unstable_Offscreen,
+  unstable_Activity,
   unstable_postpone,
   unstable_getCacheSignal,
   unstable_getCacheForType,
@@ -59,9 +58,9 @@ export {
   useActionChannel,
   useStaticValue,
   version,
-} from './src/React';
+} from './src/ReactClient';
 
-import {useOptimistic} from './src/React';
+import {useOptimistic} from './src/ReactClient';
 
 export function experimental_useOptimistic<S, A>(
   passthrough: S,
