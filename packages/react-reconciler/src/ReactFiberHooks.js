@@ -1688,7 +1688,7 @@ function updateActionChannel<A>(
 ): (A | Thenable<A>) => void {
   updateId(); // for symmetry with the `mountId()` call in `mountActionChannel`
   const hook = updateWorkInProgressHook();
-  return hook.memoizedValue.dispatch;
+  return hook.memoizedState.dispatch;
 }
 
 const uninitialized = {};
