@@ -96,6 +96,7 @@ ReactDOMSharedInternals.d /* ReactDOMCurrentDispatcher */ = {
   X /* preinitScript */: preinitScript,
   S /* preinitStyle */: preinitStyle,
   M /* preinitModuleScript */: preinitModuleScript,
+  dispatchToActionChannel,
 };
 
 // We make every property of the descriptor optional because it is not a contract that
@@ -5600,6 +5601,71 @@ function preload(href: string, as: string, options?: ?PreloadImplOptions) {
     }
     // If we got this far we created a new resource
     flushResources(request);
+  }
+}
+
+export function dispatchToActionChannel(
+  channelId: string,
+  action: mixed | Promise<mixed>,
+) {
+  if (!enableFloat) {
+    return;
+  }
+  const request = resolveRequest();
+  if (!request) {
+    // In async contexts we can sometimes resolve resources from AsyncLocalStorage. If we can't we can also
+    // possibly get them from the stack if we are not in an async context. Since we were not able to resolve
+    // the resources for this call in either case we opt to do nothing. We can consider making this a warning
+    // but there may be times where calling a function outside of render is intentional (i.e. to warm up data
+    // fetching) and we don't want to warn in those cases.
+    return;
+  }
+  function flushAction(resolvedAction: mixed) {
+    try {
+      const renderState = getRenderState(request);
+      const resource: Resource = [];
+
+      resource.push(startChunkForTag('script'));
+      pushAttribute(resource, 'type', 'text/javascript');
+      resource.push(endOfStartTag);
+      pushInnerHTML(
+        resource,
+        {
+          __html:
+            '{' +
+            `let i=${escapeJSObjectForInstructionScripts(channelId)},` +
+            `c='__REACT_ACTION_CHANNEL',b=self[c]||(self[c]={});` +
+            `(b[i]||(b[i]=[])).push(${escapeJSObjectForInstructionScripts(
+              resolvedAction,
+            )})` +
+            `}`,
+        },
+        null,
+      );
+      resource.push(endChunkForTag('script'));
+      renderState.scripts.add(resource);
+    } finally {
+      // make sure that `flushResources` is always called, even if e.g.
+      // the `JSON.stringify` above throws.
+      // we might have gone the async path and prevented the final flush
+      // by incrementing `request.allPendingTasks`, so we definitely have
+      // to flush
+      flushResources(request);
+    }
+  }
+  if (action && typeof action.then === 'function') {
+    request.allPendingTasks++;
+    action.then(flushAction).finally(() => {
+      request.allPendingTasks--;
+      if (request.allPendingTasks === 0) {
+        // This needs to be called at the very end so that we can synchronously write the result
+        // in the callback if needed.
+        const onAllReady = request.onAllReady;
+        onAllReady();
+      }
+    });
+  } else {
+    flushAction(action);
   }
 }
 

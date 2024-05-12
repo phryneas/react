@@ -31,7 +31,11 @@ import {
   readPreviousThenable,
 } from './ReactFizzThenable';
 
-import {makeId, NotPendingTransition} from './ReactFizzConfig';
+import {
+  makeId,
+  NotPendingTransition,
+  dispatchToActionChannel,
+} from './ReactFizzConfig';
 import {createFastHash} from './ReactServerStreamConfig';
 
 import {
@@ -801,6 +805,19 @@ function useMemoCache(size: number): Array<any> {
   return data;
 }
 
+function useActionChannel<A>(subscriber: A => void): (A | Thenable<A>) => void {
+  const id = useId();
+  return (action: A | Thenable<A>) => {
+    dispatchToActionChannel(id, action);
+  };
+}
+
+function useStaticValue<V>(value: (() => V) | V): V {
+  const id = useId();
+  dispatchToActionChannel(id, value);
+  return value;
+}
+
 function noop(): void {}
 
 export const HooksDispatcher: Dispatcher = {
@@ -825,6 +842,8 @@ export const HooksDispatcher: Dispatcher = {
   useId,
   // Subscriptions are not setup in a server environment.
   useSyncExternalStore,
+  useActionChannel,
+  useStaticValue,
 };
 
 if (enableCache) {

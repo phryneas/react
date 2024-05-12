@@ -56,6 +56,8 @@ import {
   useCacheRefresh,
   use,
   useOptimistic,
+  useActionChannel,
+  useStaticValue,
   useActionState,
 } from './ReactHooks';
 import ReactSharedInternals from './ReactSharedInternalsClient';
@@ -122,4 +124,6 @@ export {
   REACT_TRACING_MARKER_TYPE as unstable_TracingMarker,
   useId,
   act,
+  useActionChannel,
+  useStaticValue,
 };

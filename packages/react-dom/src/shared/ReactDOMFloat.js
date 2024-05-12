@@ -150,6 +150,16 @@ export function preload(href: string, options: PreloadOptions) {
   // so we favor silent bailout over warning or erroring.
 }
 
+export function dispatchToActionChannel(
+  channelId: string,
+  action: mixed | Promise<mixed>,
+) {
+  const dispatcher = Dispatcher.current;
+  if (dispatcher) {
+    dispatcher.dispatchToActionChannel(channelId, action);
+  }
+}
+
 export function preloadModule(href: string, options?: ?PreloadModuleOptions) {
   if (__DEV__) {
     let encountered = '';

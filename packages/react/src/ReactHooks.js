@@ -210,6 +210,20 @@ export function useOptimistic<S, A>(
   return dispatcher.useOptimistic(passthrough, reducer);
 }
 
+export function useActionChannel<A>(
+  subscriber: A => void,
+): (A | Thenable<A>) => void {
+  const dispatcher = resolveDispatcher();
+  // $FlowFixMe[not-a-function] This is unstable, thus optional
+  return dispatcher.useActionChannel(subscriber);
+}
+
+export function useStaticValue<V>(value: (() => V) | V): V {
+  const dispatcher = resolveDispatcher();
+  // $FlowFixMe[not-a-function] This is unstable, thus optional
+  return dispatcher.useStaticValue(value);
+}
+
 export function useActionState<S, P>(
   action: (Awaited<S>, P) => S,
   initialState: Awaited<S>,
