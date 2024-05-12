@@ -10,14 +10,12 @@
 'use strict';
 
 describe('forwardRef', () => {
-  let PropTypes;
   let React;
   let ReactNoop;
   let waitForAll;
 
   beforeEach(() => {
     jest.resetModules();
-    PropTypes = require('prop-types');
     React = require('react');
     ReactNoop = require('react-noop-renderer');
 
@@ -76,7 +74,8 @@ describe('forwardRef', () => {
     expect(ref.current).toBe(null);
   });
 
-  it('should support propTypes and defaultProps', async () => {
+  // @gate !disableDefaultPropsExceptForClasses
+  it('should support defaultProps', async () => {
     function FunctionComponent({forwardedRef, optional, required}) {
       return (
         <div ref={forwardedRef}>
@@ -91,10 +90,6 @@ describe('forwardRef', () => {
         return <FunctionComponent {...props} forwardedRef={ref} />;
       },
     );
-    RefForwardingComponent.propTypes = {
-      optional: PropTypes.string,
-      required: PropTypes.string.isRequired,
-    };
     RefForwardingComponent.defaultProps = {
       optional: 'default',
     };
@@ -116,14 +111,6 @@ describe('forwardRef', () => {
       {text: 'default', hidden: false},
       {text: 'foo', hidden: false},
     ]);
-
-    expect(() =>
-      ReactNoop.render(<RefForwardingComponent ref={ref} optional="foo" />),
-    ).toErrorDev(
-      'Warning: Failed prop type: The prop `required` is marked as required in ' +
-        '`ForwardRef(NamedFunction)`, but its value is `undefined`.\n' +
-        '    in NamedFunction (at **)',
-    );
   });
 
   it('should warn if not provided a callback during creation', () => {
@@ -150,24 +137,14 @@ describe('forwardRef', () => {
     );
   });
 
-  it('should warn if the render function provided has propTypes or defaultProps attributes', () => {
-    function renderWithPropTypes(props, ref) {
-      return null;
-    }
-    renderWithPropTypes.propTypes = {};
-
+  it('should warn if the render function provided has defaultProps attributes', () => {
     function renderWithDefaultProps(props, ref) {
       return null;
     }
     renderWithDefaultProps.defaultProps = {};
 
-    expect(() => React.forwardRef(renderWithPropTypes)).toErrorDev(
-      'forwardRef render functions do not support propTypes or defaultProps. ' +
-        'Did you accidentally pass a React component?',
-      {withoutStack: true},
-    );
     expect(() => React.forwardRef(renderWithDefaultProps)).toErrorDev(
-      'forwardRef render functions do not support propTypes or defaultProps. ' +
+      'forwardRef render functions do not support defaultProps. ' +
         'Did you accidentally pass a React component?',
       {withoutStack: true},
     );
@@ -216,7 +193,7 @@ describe('forwardRef', () => {
     await expect(async () => {
       await waitForAll([]);
     }).toErrorDev(
-      'Each child in a list should have a unique "key" prop. See https://reactjs.org/link/warning-keys for more information.\n' +
+      'Each child in a list should have a unique "key" prop. See https://react.dev/link/warning-keys for more information.\n' +
         '    in p (at **)',
     );
   });
@@ -233,7 +210,7 @@ describe('forwardRef', () => {
     await expect(async () => {
       await waitForAll([]);
     }).toErrorDev(
-      'Each child in a list should have a unique "key" prop. See https://reactjs.org/link/warning-keys for more information.\n' +
+      'Each child in a list should have a unique "key" prop. See https://react.dev/link/warning-keys for more information.\n' +
         '    in Inner (at **)\n' +
         '    in p (at **)',
     );
@@ -253,7 +230,7 @@ describe('forwardRef', () => {
     await expect(async () => {
       await waitForAll([]);
     }).toErrorDev(
-      'Each child in a list should have a unique "key" prop. See https://reactjs.org/link/warning-keys for more information.\n' +
+      'Each child in a list should have a unique "key" prop. See https://react.dev/link/warning-keys for more information.\n' +
         '    in Inner (at **)\n' +
         '    in p (at **)',
     );
@@ -272,7 +249,7 @@ describe('forwardRef', () => {
     await expect(async () => {
       await waitForAll([]);
     }).toErrorDev(
-      'Each child in a list should have a unique "key" prop. See https://reactjs.org/link/warning-keys for more information.\n' +
+      'Each child in a list should have a unique "key" prop. See https://react.dev/link/warning-keys for more information.\n' +
         '    in Outer (at **)\n' +
         '    in p (at **)',
     );
@@ -293,7 +270,7 @@ describe('forwardRef', () => {
     await expect(async () => {
       await waitForAll([]);
     }).toErrorDev(
-      'Each child in a list should have a unique "key" prop. See https://reactjs.org/link/warning-keys for more information.\n' +
+      'Each child in a list should have a unique "key" prop. See https://react.dev/link/warning-keys for more information.\n' +
         '    in Inner (at **)\n' +
         '    in p (at **)',
     );
